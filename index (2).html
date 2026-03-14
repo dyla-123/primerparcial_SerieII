@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clínica del Pacífico — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:        #080f17;
+    --panel:     #0d1825;
+    --panel2:    #111f2e;
+    --border:    #1a2e42;
+    --blue:      #2e86de;
+    --green:     #1bc98e;
+    --amber:     #f9a825;
+    --red:       #e74c3c;
+    --violet:    #8b5cf6;
+    --teal:      #06b6d4;
+    --white:     #eef3f8;
+    --muted:     #7a8fa6;
+    --faint:     #1a2e42;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; }
+  .logo-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .date { font-size: 12px; color: var(--muted); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; gap: 4px; padding: 16px 32px 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 9px 18px; border-radius: 8px 8px 0 0;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: transparent; color: var(--muted);
+    transition: all .2s; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .tab:hover  { color: var(--white); background: var(--panel2); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); background: var(--panel2); }
+
+  /* ── Main layout ── */
+  main { padding: 24px 32px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── KPI Grid ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: transform .2s, border-color .2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); border-color: #2a4060; }
+  .kpi-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; border-radius: 12px 0 0 12px;
+  }
+  .kpi-card.ok::before    { background: var(--green); }
+  .kpi-card.warn::before  { background: var(--amber); }
+  .kpi-card.bad::before   { background: var(--red); }
+  .kpi-card.neutral::before { background: var(--blue); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; }
+  .kpi-note  { font-size: 11px; margin-top: 6px; }
+  .kpi-note.ok   { color: var(--green); }
+  .kpi-note.warn { color: var(--amber); }
+  .kpi-note.bad  { color: var(--red); }
+  .kpi-note.neutral { color: var(--muted); }
+
+  /* ── Chart Grid ── */
+  .chart-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 16px;
+  }
+  .chart-grid-3 {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--white); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-title span {
+    width: 4px; height: 16px; border-radius: 2px;
+    background: var(--blue); display: inline-block;
+  }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ── Barra horizontal custom ── */
+  .hbar-list { display: flex; flex-direction: column; gap: 10px; }
+  .hbar-row  { display: flex; align-items: center; gap: 10px; }
+  .hbar-label { width: 130px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .hbar-track { flex: 1; background: var(--faint); border-radius: 4px; height: 20px; overflow: hidden; }
+  .hbar-fill  {
+    height: 100%; border-radius: 4px;
+    display: flex; align-items: center;
+    padding-left: 8px; font-size: 11px; font-weight: 600;
+    color: #fff; transition: width 1s cubic-bezier(.4,0,.2,1);
+    width: 0;
+  }
+  .hbar-val { width: 40px; font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* ── Gauge ── */
+  .gauge-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-around; }
+  .gauge-item { text-align: center; }
+  .gauge-item svg { display: block; margin: 0 auto; }
+  .gauge-label { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .gauge-val   { font-size: 16px; font-weight: 700; color: var(--white); }
+
+  /* ── Alertas ── */
+  .alert-list { display: flex; flex-direction: column; gap: 8px; }
+  .alert-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 11px 14px; border-radius: 10px;
+    font-size: 13px; border: 1px solid transparent;
+    transition: transform .15s;
+  }
+  .alert-item:hover { transform: translateX(4px); }
+  .alert-item.crit  { background: rgba(231,76,60,.1);  border-color: rgba(231,76,60,.25); }
+  .alert-item.warn  { background: rgba(249,168,37,.1); border-color: rgba(249,168,37,.25); }
+  .alert-item.ok    { background: rgba(27,201,142,.1); border-color: rgba(27,201,142,.25); }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .dot-crit { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-warn { background: var(--amber); }
+  .dot-ok   { background: var(--green); }
+  .alert-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; flex-shrink: 0; letter-spacing: .05em;
+  }
+  .badge-crit { background: rgba(231,76,60,.2); color: var(--red); }
+  .badge-warn { background: rgba(249,168,37,.2); color: var(--amber); }
+  .badge-ok   { background: rgba(27,201,142,.2); color: var(--green); }
+  .alert-msg  { color: var(--white); line-height: 1.4; }
+
+  /* ── Trend mini ── */
+  .trend-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin-top: 8px; }
+  .t-bar { flex: 1; border-radius: 3px 3px 0 0; transition: opacity .2s; }
+  .t-bar:hover { opacity: .8; }
+  .t-labels { display: flex; gap: 5px; margin-top: 4px; }
+  .t-lbl { flex: 1; text-align: center; font-size: 10px; color: var(--muted); }
+
+  /* ── Sparkline KPI ── */
+  .kpi-spark { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin-top: 8px; }
+  .sk { width: 6px; border-radius: 2px 2px 0 0; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; padding: 20px;
+    font-size: 11px; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 8px;
+  }
+
+  /* ── Responsivo ── */
+  @media (max-width: 768px) {
+    main { padding: 16px; }
+    .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    .tabs { padding: 12px 16px 0; }
+    .hbar-label { width: 90px; font-size: 11px; }
+  }
+
+  /* ── Animación entrada ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .kpi-card, .chart-card, .alert-item {
+    animation: fadeUp .4s ease both;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">CP</div>
+    <div>
+      <div class="logo-text">Clínica del Pacífico</div>
+      <div class="logo-sub">Panel de Indicadores Críticos</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="date">Marzo 2026</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+      <div class="status-dot"></div> Sistema activo
+    </div>
+  </div>
+</header>
+
+<!-- ═══ TABS ══════════════════════════════════════════════════════════════════ -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('resumen',this)">Resumen ejecutivo</button>
+  <button class="tab" onclick="showTab('operaciones',this)">Operaciones</button>
+  <button class="tab" onclick="showTab('clinico',this)">Calidad clínica</button>
+  <button class="tab" onclick="showTab('financiero',this)">Financiero</button>
+  <button class="tab" onclick="showTab('rrhh',this)">Recursos humanos</button>
+  <button class="tab" onclick="showTab('alertas',this)">⚠ Alertas</button>
+</div>
+
+<main>
+
+<!-- ═══ RESUMEN ══════════════════════════════════════════════════════════════ -->
+<div class="section active" id="tab-resumen">
+  <div class="kpi-grid">
+    <div class="kpi-card ok"      style="animation-delay:.05s"><div class="kpi-label">Pacientes / día</div><div class="kpi-value">184</div><div class="kpi-note ok">↑ 12% vs mes anterior</div></div>
+    <div class="kpi-card neutral" style="animation-delay:.10s"><div class="kpi-label">Ocupación camas</div><div class="kpi-value">78%</div><div class="kpi-note neutral">Meta: 75–85%</div></div>
+    <div class="kpi-card ok"      style="animation-delay:.15s"><div class="kpi-label">Satisfacción paciente</div><div class="kpi-value">87%</div><div class="kpi-note ok">↑ 4 puntos</div></div>
+    <div class="kpi-card bad"     style="animation-delay:.20s"><div class="kpi-label">Tiempo espera</div><div class="kpi-value">23 min</div><div class="kpi-note bad">↑ 3 min sobre meta</div></div>
+    <div class="kpi-card ok"      style="animation-delay:.25s"><div class="kpi-label">Ingresos del mes</div><div class="kpi-value">$284k</div><div class="kpi-note ok">↑ 8.5%</div></div>
+    <div class="kpi-card bad"     style="animation-delay:.30s"><div class="kpi-label">Readmisiones 30d</div><div class="kpi-value">4.2%</div><div class="kpi-note bad">Meta &lt; 3%</div></div>
+    <div class="kpi-card bad"     style="animation-delay:.35s"><div class="kpi-label">Cirugías canceladas</div><div class="kpi-value">3.8%</div><div class="kpi-note bad">Meta &lt; 2%</div></div>
+    <div class="kpi-card ok"      style="animation-delay:.40s"><div class="kpi-label">Ausentismo</div><div class="kpi-value">3.1%</div><div class="kpi-note ok">Meta &lt; 4%</div></div>
+  </div>
+
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Consultas por especialidad (mes)</div>
+      <div class="hbar-list" id="esp-bars"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Servicios utilizados (%)</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="pieServicios"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Tendencia de ingresos — 6 meses ($k)</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="lineIngresos"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Ocupación camas por unidad (%)</div>
+      <div class="hbar-list" id="camas-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OPERACIONES ══════════════════════════════════════════════════════════ -->
+<div class="section" id="tab-operaciones">
+  <div class="kpi-grid">
+    <div class="kpi-card warn"   ><div class="kpi-label">Ocupación quirófanos</div><div class="kpi-value">69%</div><div class="kpi-note warn">Meta: 70%</div></div>
+    <div class="kpi-card bad"    ><div class="kpi-label">Cirugías canceladas</div><div class="kpi-value">3.8%</div><div class="kpi-note bad">Meta &lt; 2%</div></div>
+    <div class="kpi-card ok"     ><div class="kpi-label">Rotación de camas</div><div class="kpi-value">4.1</div><div class="kpi-note ok">pac./cama/mes</div></div>
+    <div class="kpi-card ok"     ><div class="kpi-label">Estancia promedio</div><div class="kpi-value">2.8d</div><div class="kpi-note ok">Bench: 3.1d</div></div>
+    <div class="kpi-card bad"    ><div class="kpi-label">Cumplimiento citas</div><div class="kpi-value">81%</div><div class="kpi-note bad">Meta 88%</div></div>
+    <div class="kpi-card bad"    ><div class="kpi-label">Espera imágenes</div><div class="kpi-value">47 min</div><div class="kpi-note bad">Meta 30 min</div></div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Tiempo espera por especialidad (min)</div>
+      <div class="hbar-list" id="espera-bars"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Ocupación camas por piso (%)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="barCamas"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CLÍNICO ══════════════════════════════════════════════════════════════ -->
+<div class="section" id="tab-clinico">
+  <div class="kpi-grid">
+    <div class="kpi-card ok"  ><div class="kpi-label">Infecciones nosocomiales</div><div class="kpi-value">1.8%</div><div class="kpi-note ok">Meta &lt; 2% ✓</div></div>
+    <div class="kpi-card ok"  ><div class="kpi-label">Mortalidad intrahospital.</div><div class="kpi-value">0.9%</div><div class="kpi-note ok">Bench 1.1% ✓</div></div>
+    <div class="kpi-card warn "><div class="kpi-label">Complicaciones post-qx</div><div class="kpi-value">2.4%</div><div class="kpi-note warn">Meta &lt; 2.5%</div></div>
+    <div class="kpi-card ok"  ><div class="kpi-label">Adherencia protocolos</div><div class="kpi-value">91%</div><div class="kpi-note ok">↑ 6 pts</div></div>
+    <div class="kpi-card ok"  ><div class="kpi-label">Diagnóstico correcto</div><div class="kpi-value">94%</div><div class="kpi-note ok">Alta precisión</div></div>
+    <div class="kpi-card neutral"><div class="kpi-label">Eventos adversos</div><div class="kpi-value">7</div><div class="kpi-note neutral">reportados este mes</div></div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Indicadores vs meta (%)</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="radarClinico"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Morbilidad intrahospitalaria — top 5</div>
+      <div class="hbar-list" id="morbi-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FINANCIERO ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="tab-financiero">
+  <div class="kpi-grid">
+    <div class="kpi-card ok"  ><div class="kpi-label">Ingresos del mes</div><div class="kpi-value">$284k</div><div class="kpi-note ok">↑ 8.5% vs feb</div></div>
+    <div class="kpi-card bad" ><div class="kpi-label">Costo por paciente</div><div class="kpi-value">$142</div><div class="kpi-note bad">↑ $8 vs meta</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">Margen operativo</div><div class="kpi-value">18.4%</div><div class="kpi-note warn">Meta 20%</div></div>
+    <div class="kpi-card ok"  ><div class="kpi-label">Cobranza efectiva</div><div class="kpi-value">88%</div><div class="kpi-note ok">↑ 3 pts</div></div>
+    <div class="kpi-card bad" ><div class="kpi-label">Cuentas por cobrar</div><div class="kpi-value">$54k</div><div class="kpi-note bad">+30d vencidas</div></div>
+    <div class="kpi-card ok"  ><div class="kpi-label">ROI servicios</div><div class="kpi-value">2.3x</div><div class="kpi-note ok">Imágenes / Qx</div></div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Ingresos por servicio ($k)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="barIngresos"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Estructura de costos (%)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="doughnutCostos"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title"><span></span>Tendencia de ingresos mensuales ($k)</div>
+    <div class="chart-wrap" style="height:200px"><canvas id="lineIngresos2"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ RRHH ══════════════════════════════════════════════════════════════════ -->
+<div class="section" id="tab-rrhh">
+  <div class="kpi-grid">
+    <div class="kpi-card neutral"><div class="kpi-label">Total personal</div><div class="kpi-value">218</div><div class="kpi-note neutral">asistencial + admin.</div></div>
+    <div class="kpi-card ok"    ><div class="kpi-label">Ausentismo</div><div class="kpi-value">3.1%</div><div class="kpi-note ok">Meta &lt; 4% ✓</div></div>
+    <div class="kpi-card bad"   ><div class="kpi-label">Rotación personal</div><div class="kpi-value">7.8%</div><div class="kpi-note bad">Sector 5%</div></div>
+    <div class="kpi-card bad"   ><div class="kpi-label">Horas extra</div><div class="kpi-value">412h</div><div class="kpi-note bad">+18% vs meta</div></div>
+    <div class="kpi-card neutral"><div class="kpi-label">Capacitación</div><div class="kpi-value">14h</div><div class="kpi-note neutral">prom/emp/trim.</div></div>
+    <div class="kpi-card warn"  ><div class="kpi-label">Satisfacción laboral</div><div class="kpi-value">72%</div><div class="kpi-note warn">Meta 80%</div></div>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Distribución del personal</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="barPersonal"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span></span>Ausentismo por área (%)</div>
+      <div class="hbar-list" id="ausent-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ALERTAS ══════════════════════════════════════════════════════════════ -->
+<div class="section" id="tab-alertas">
+  <div class="kpi-grid" style="margin-bottom:16px">
+    <div class="kpi-card bad"    ><div class="kpi-label">Alertas críticas</div><div class="kpi-value" style="color:var(--red)">3</div><div class="kpi-note bad">Acción inmediata</div></div>
+    <div class="kpi-card warn"   ><div class="kpi-label">Alertas atención</div><div class="kpi-value" style="color:var(--amber)">4</div><div class="kpi-note warn">Seguimiento requerido</div></div>
+    <div class="kpi-card ok"     ><div class="kpi-label">Indicadores OK</div><div class="kpi-value" style="color:var(--green)">3</div><div class="kpi-note ok">Dentro de rango</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title"><span></span>Panel de alertas — estado actual</div>
+    <div class="alert-list" id="alert-list"></div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Clínica del Pacífico &nbsp;|&nbsp; Plan de Transformación Digital &nbsp;|&nbsp; Indicadores al 14 de marzo de 2026
+</footer>
+
+<script>
+// ── Datos ───────────────────────────────────────────────────────────────────
+const C = {
+  blue:'#2e86de', green:'#1bc98e', amber:'#f9a825',
+  red:'#e74c3c', violet:'#8b5cf6', teal:'#06b6d4',
+  muted:'#7a8fa6', faint:'#1a2e42', panel:'#0d1825'
+};
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  initTab(id);
+}
+
+const initialised = {};
+function initTab(id) {
+  if (initialised[id]) return;
+  initialised[id] = true;
+  if (id === 'resumen')    buildResumen();
+  if (id === 'operaciones') buildOperaciones();
+  if (id === 'clinico')    buildClinico();
+  if (id === 'financiero') buildFinanciero();
+  if (id === 'rrhh')       buildRRHH();
+  if (id === 'alertas')    buildAlertas();
+}
+
+// ── Utilidades ──────────────────────────────────────────────────────────────
+const chartDefaults = {
+  color: C.muted,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: C.faint }, ticks: { color: C.muted, font: { family: 'DM Sans' } }, border: { color: C.faint } },
+    y: { grid: { color: C.faint }, ticks: { color: C.muted, font: { family: 'DM Sans' } }, border: { color: C.faint } }
+  }
+};
+
+function hbars(containerId, data) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const max = Math.max(...data.map(d => d.val));
+  data.forEach(d => {
+    const pct = Math.round(d.val / max * 100);
+    el.innerHTML += `
+      <div class="hbar-row">
+        <span class="hbar-label">${d.label}</span>
+        <div class="hbar-track">
+          <div class="hbar-fill" data-w="${pct}" style="background:${d.color}">
+            ${d.display || d.val}
+          </div>
+        </div>
+        <span class="hbar-val">${d.display || d.val}</span>
+      </div>`;
+  });
+  setTimeout(() => {
+    el.querySelectorAll('.hbar-fill').forEach(b => {
+      b.style.width = b.dataset.w + '%';
+    });
+  }, 80);
+}
+
+// ── Resumen ─────────────────────────────────────────────────────────────────
+function buildResumen() {
+  hbars('esp-bars', [
+    {label:'Medicina interna', val:328, color:C.blue},
+    {label:'Pediatría',        val:284, color:C.green},
+    {label:'Ginecología',      val:240, color:C.violet},
+    {label:'Traumatología',    val:200, color:C.amber},
+    {label:'Cirugía general',  val:168, color:C.red},
+    {label:'Cardiología',      val:140, color:C.teal},
+  ]);
+  hbars('camas-bars', [
+    {label:'UCI',        val:90, color:C.red,    display:'90%'},
+    {label:'Maternidad', val:80, color:C.amber,  display:'80%'},
+    {label:'Médico',     val:78, color:C.blue,   display:'78%'},
+    {label:'Quirúrgico', val:72, color:C.violet, display:'72%'},
+    {label:'Pediatría',  val:65, color:C.green,  display:'65%'},
+  ]);
+  new Chart(document.getElementById('pieServicios'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Consulta ext.','Imágenes/Lab.','Hospitalización','Procedimientos','Cirugías'],
+      datasets: [{ data: [38,27,20,9,6],
+        backgroundColor:[C.blue,C.green,C.violet,C.amber,C.teal],
+        borderColor:'#0d1825', borderWidth:3, hoverOffset:8 }]
+    },
+    options: {
+      cutout:'60%', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, position:'right',
+        labels:{ color:C.muted, boxWidth:10, padding:12, font:{family:'DM Sans',size:11} }
+      }}
+    }
+  });
+  buildLineIngresos('lineIngresos');
+}
+
+function buildLineIngresos(canvasId) {
+  new Chart(document.getElementById(canvasId), {
+    type:'line',
+    data:{
+      labels:['Oct','Nov','Dic','Ene','Feb','Mar'],
+      datasets:[{
+        data:[221,249,261,270,262,284],
+        borderColor:C.blue, backgroundColor:'rgba(46,134,222,.12)',
+        fill:true, tension:.4, pointRadius:5,
+        pointBackgroundColor:'#080f17', pointBorderColor:C.blue, pointBorderWidth:2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:C.faint},ticks:{color:C.muted},border:{color:C.faint}},
+        y:{grid:{color:C.faint},ticks:{color:C.muted,callback:v=>`$${v}k`},border:{color:C.faint},min:200}
+      }
+    }
+  });
+}
+
+// ── Operaciones ─────────────────────────────────────────────────────────────
+function buildOperaciones() {
+  hbars('espera-bars', [
+    {label:'Urgencias',      val:12, color:C.green, display:'12 min'},
+    {label:'Medicina int.',  val:23, color:C.amber, display:'23 min'},
+    {label:'Traumatología',  val:30, color:C.amber, display:'30 min'},
+    {label:'Neurología',     val:36, color:C.red,   display:'36 min'},
+    {label:'Endocrinología', val:38, color:C.red,   display:'38 min'},
+  ]);
+  new Chart(document.getElementById('barCamas'), {
+    type:'bar',
+    data:{
+      labels:['UCI','Maternidad','Médico','Quirúrgico','Pediatría'],
+      datasets:[{
+        data:[90,80,78,72,65],
+        backgroundColor:[C.red,C.amber,C.blue,C.violet,C.green],
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:C.faint},ticks:{color:C.muted,callback:v=>v+'%'},border:{color:C.faint},max:105},
+        y:{grid:{color:'transparent'},ticks:{color:C.muted},border:{color:C.faint}}
+      }
+    }
+  });
+}
+
+// ── Clínico ──────────────────────────────────────────────────────────────────
+function buildClinico() {
+  new Chart(document.getElementById('radarClinico'), {
+    type:'radar',
+    data:{
+      labels:['Adherencia\nprotocolos','Dx correcto','Satisfacción','Sin infecciones','Sin mortalidad','Consent. digital'],
+      datasets:[
+        {label:'Real', data:[91,94,87,98.2,99.1,60],
+          borderColor:C.blue, backgroundColor:'rgba(46,134,222,.15)',
+          pointBackgroundColor:C.blue, pointRadius:4},
+        {label:'Meta', data:[90,90,85,98,98.9,80],
+          borderColor:C.amber, backgroundColor:'rgba(249,168,37,.08)',
+          pointBackgroundColor:C.amber, pointRadius:3, borderDash:[4,4]}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, labels:{color:C.muted, font:{family:'DM Sans',size:11}}}},
+      scales:{r:{
+        grid:{color:C.faint}, angleLines:{color:C.faint},
+        ticks:{color:C.muted, backdropColor:'transparent', stepSize:20},
+        pointLabels:{color:C.muted, font:{family:'DM Sans',size:10}},
+        min:50, max:100
+      }}
+    }
+  });
+  hbars('morbi-bars', [
+    {label:'Hipertensión',   val:34, color:C.blue},
+    {label:'Diabetes',       val:27, color:C.violet},
+    {label:'Fractura',       val:20, color:C.amber},
+    {label:'Inf. urinaria',  val:15, color:C.green},
+    {label:'Neumonía adq.',  val:9,  color:C.teal},
+  ]);
+}
+
+// ── Financiero ───────────────────────────────────────────────────────────────
+function buildFinanciero() {
+  new Chart(document.getElementById('barIngresos'), {
+    type:'bar',
+    data:{
+      labels:['Hospitalización','Cirugías','Consulta ext.','Imágenes/Lab.','Procedimientos'],
+      datasets:[{
+        data:[98,79,60,41,16],
+        backgroundColor:[C.blue,C.violet,C.green,C.amber,C.teal],
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'transparent'},ticks:{color:C.muted,font:{size:10}},border:{color:C.faint}},
+        y:{grid:{color:C.faint},ticks:{color:C.muted,callback:v=>`$${v}k`},border:{color:C.faint}}
+      }
+    }
+  });
+  new Chart(document.getElementById('doughnutCostos'), {
+    type:'doughnut',
+    data:{
+      labels:['Personal','Insumos médicos','Infraestructura','Tecnología','Administración'],
+      datasets:[{
+        data:[52,21,14,8,5],
+        backgroundColor:[C.blue,C.green,C.violet,C.teal,C.amber],
+        borderColor:'#0d1825', borderWidth:3, hoverOffset:8
+      }]
+    },
+    options:{
+      cutout:'60%', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'right',
+        labels:{color:C.muted, boxWidth:10, padding:10, font:{family:'DM Sans',size:11}}
+      }}
+    }
+  });
+  buildLineIngresos('lineIngresos2');
+}
+
+// ── RRHH ─────────────────────────────────────────────────────────────────────
+function buildRRHH() {
+  new Chart(document.getElementById('barPersonal'), {
+    type:'bar',
+    data:{
+      labels:['Enfermería','Médicos','Técnicos','Administrativo'],
+      datasets:[{
+        data:[92,68,36,22],
+        backgroundColor:[C.green,C.blue,C.violet,C.teal],
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'transparent'},ticks:{color:C.muted},border:{color:C.faint}},
+        y:{grid:{color:C.faint},ticks:{color:C.muted},border:{color:C.faint}}
+      }
+    }
+  });
+  hbars('ausent-bars', [
+    {label:'UCI',          val:5.8, color:C.red,   display:'5.8%'},
+    {label:'Urgencias',    val:4.6, color:C.amber, display:'4.6%'},
+    {label:'Quirófanos',   val:2.7, color:C.green, display:'2.7%'},
+    {label:'Consulta ext.',val:2.4, color:C.green, display:'2.4%'},
+    {label:'Administración',val:1.8,color:C.green, display:'1.8%'},
+  ]);
+}
+
+// ── Alertas ───────────────────────────────────────────────────────────────────
+function buildAlertas() {
+  const alertas = [
+    {type:'crit', msg:'UCI al 90% de capacidad — 18/20 camas ocupadas. Evaluar traslados.'},
+    {type:'crit', msg:'Neurología: tiempo de espera 36 min (meta 30 min). Revisar agenda.'},
+    {type:'crit', msg:'Cirugías canceladas 3.8% (meta < 2%). Identificar causa raíz.'},
+    {type:'warn', msg:'Readmisiones 30d: 4.2% (meta < 3%). Revisar protocolos de alta.'},
+    {type:'warn', msg:'Cuentas por cobrar vencidas: $54k (+30 días). Gestionar cobranza.'},
+    {type:'warn', msg:'Tiempo espera imágenes: 47 min (meta 30 min). Optimizar agenda Rx.'},
+    {type:'warn', msg:'Satisfacción laboral: 72% (meta 80%). Alta rotación como factor.'},
+    {type:'ok',   msg:'Infecciones nosocomiales: 1.8% — dentro del rango aceptable (< 2%).'},
+    {type:'ok',   msg:'Mortalidad intrahospitalaria: 0.9% — por debajo del benchmark 1.1%.'},
+    {type:'ok',   msg:'Adherencia a protocolos clínicos: 91% — mejora sostenida.'},
+  ];
+  const label = {crit:'CRÍTICO', warn:'ATENCIÓN', ok:'OK'};
+  const list  = document.getElementById('alert-list');
+  list.innerHTML = alertas.map((a,i) => `
+    <div class="alert-item ${a.type}" style="animation-delay:${i*.06}s">
+      <div class="alert-dot dot-${a.type}"></div>
+      <span class="alert-badge badge-${a.type}">${label[a.type]}</span>
+      <span class="alert-msg">${a.msg}</span>
+    </div>`).join('');
+}
+
+// ── Inicializar primera pestaña ───────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initialised['resumen'] = true;
+  buildResumen();
+  buildAlertas();
+});
+</script>
+</body>
+</html>
